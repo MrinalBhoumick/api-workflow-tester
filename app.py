@@ -194,14 +194,7 @@ def main():
                         for subitem in item["item"]:
                             if "request" in subitem:
                                 results.append(run_request(subitem.get("name", "Unnamed"), subitem["request"], url, url_v2, access_token, cookies))
-
-                # Step 8: Export results to Excel
-                df = pd.DataFrame(results)
-                df.to_excel("downstream_api_results.xlsx", index=False)
-                logger.info("📊 API test results exported to downstream_api_results.xlsx")
-                st.success("API test results exported successfully.")
-
-            # Step 9: Export session.json for download
+            # Step 8: Export session.json for download
             with open("session.json", "r") as f:
                 session_data_content = f.read()
 
@@ -211,7 +204,30 @@ def main():
                 file_name="session.json",
                 mime="application/json"
             )
+            
+            # Step 9: Export results to Excel
+            df = pd.DataFrame(results)
 
+            # Write Excel to a BytesIO object instead of saving to disk
+            excel_buffer = io.BytesIO()
+            with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+                df.to_excel(writer, index=False, sheet_name="Results")
+                writer.save()
+
+            # Move buffer to the beginning
+            excel_buffer.seek(0)
+
+            # Download button for Excel
+            st.download_button(
+                label="📥 Download API Results (Excel)",
+                data=excel_buffer,
+                file_name="downstream_api_results.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+            # Log and Streamlit success message
+            logger.info("📊 API test results exported to downstream_api_results.xlsx")
+            st.success("✅ API test results exported successfully.")
         else:
             logger.error(f"❌ OTP Verification Failed: {verify_otp_data}")
             st.error(f"OTP Verification failed. Response: {verify_otp_data}")
